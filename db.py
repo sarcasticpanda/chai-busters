@@ -71,3 +71,12 @@ def log_chai(chat_id: int, user_id: int, user_name: str, day: str):
             " VALUES (?,?,?,?,?)",
             (chat_id, user_id, user_name, day, month),
         )
+
+
+def monthly_leaderboard(chat_id: int, month: str) -> list:
+    with db() as c:
+        return c.execute(
+            "SELECT user_name, COUNT(*) AS n, user_id FROM chai_events"
+            " WHERE chat_id=? AND month=? GROUP BY user_id, user_name ORDER BY n DESC",
+            (chat_id, month),
+        ).fetchall()

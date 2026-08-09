@@ -15,7 +15,14 @@ from telegram.ext import (
     filters,
 )
 
-from db import already_logged_today, all_chats, init_db, log_chai, upsert_chat
+from db import (
+    already_logged_today,
+    all_chats,
+    init_db,
+    log_chai,
+    monthly_leaderboard,
+    upsert_chat,
+)
 
 IST = ZoneInfo("Asia/Kolkata")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -76,6 +83,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(random.choice(PRAISE).format(name=name))
 
 
+async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await track_chat(update)
+    month = now_ist().strftime("%Y-%m")
+    board = monthly_leaderboard(update.effective_chat.id, month)
+    if not board:
+        await update.message.reply_text("Nobody has made chai this month. Disappointing. ☕💔")
+        return
+    medals = ["🥇", "🥈", "🥉"]
+    lines = [f"☕ *Chai Leaderboard — {month}*"]
+    for i, (name, count, _uid) in enumerate(board[:10]):
+        medal = medals[i] if i < 3 else f"{i + 1}."
+        lines.append(f"{medal} {name} — {count} chai{'s' if count != 1 else ''}")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
 async def daily_chai_ping(context: ContextTypes.DEFAULT_TYPE):
     msg = random.choice(PINGS)
     for chat_id in all_chats():
@@ -91,6 +113,7 @@ def main():
     init_db()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("leaderboard", leaderboard_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.job_queue.run_daily(daily_chai_ping, time=time(16, 0, tzinfo=IST))
     log.info("☕ Chai-O'Clock is live. 4pm IST, no mercy.")
