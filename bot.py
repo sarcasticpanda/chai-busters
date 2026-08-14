@@ -27,19 +27,13 @@ from db import (
 IST = ZoneInfo("Asia/Kolkata")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
-PINGS = [
-    "☕ *CHAI O'CLOCK!* It's 4pm IST. Who's making chai? Reply `+chai` once brewed.",
-    "🚨 *CHAI EMERGENCY DRILL* All members report to the kitchen. Reply `+chai` once brewed.",
-]
-
-PRAISE = [
-    "☕ *{name} made chai!* The nation salutes you. 🫡",
-    "{name} has brewed chai. Productivity +200%. ☕⚡",
-]
-
-ALREADY = [
-    "{name}, we already counted your chai today. One per day, calm down. 😤",
-]
+from messages import (
+    ALREADY_LOGGED,
+    CHAI_PINGS,
+    CHAI_PRAISE,
+    LEADERBOARD_EMPTY,
+    WEEKLY_ROASTS,
+)
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("chai-oclock")
@@ -77,10 +71,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     day = now_ist().strftime("%Y-%m-%d")
     chat_id = update.effective_chat.id
     if already_logged_today(chat_id, user.id, day):
-        await update.message.reply_text(random.choice(ALREADY).format(name=name))
+        await update.message.reply_text(random.choice(ALREADY_LOGGED).format(name=name))
     else:
         log_chai(chat_id, user.id, name, day)
-        await update.message.reply_text(random.choice(PRAISE).format(name=name))
+        await update.message.reply_text(random.choice(CHAI_PRAISE).format(name=name))
 
 
 async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -88,7 +82,7 @@ async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     month = now_ist().strftime("%Y-%m")
     board = monthly_leaderboard(update.effective_chat.id, month)
     if not board:
-        await update.message.reply_text("Nobody has made chai this month. Disappointing. ☕💔")
+        await update.message.reply_text(random.choice(LEADERBOARD_EMPTY))
         return
     medals = ["🥇", "🥈", "🥉"]
     lines = [f"☕ *Chai Leaderboard — {month}*"]
@@ -98,8 +92,23 @@ async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
+async def weekly_roast(context: ContextTypes.DEFAULT_TYPE):
+    month = now_ist().strftime("%Y-%m")
+    for chat_id in all_chats():
+        board = monthly_leaderboard(chat_id, month)
+        if not board:
+            msg = random.choice(LEADERBOARD_EMPTY)
+        else:
+            name, count, _uid = board[0]
+            msg = random.choice(WEEKLY_ROASTS).format(top=name, count=count)
+        try:
+            await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
+        except Exception as e:
+            log.warning("weekly roast failed for %s: %s", chat_id, e)
+
+
 async def daily_chai_ping(context: ContextTypes.DEFAULT_TYPE):
-    msg = random.choice(PINGS)
+    msg = random.choice(CHAI_PINGS)
     for chat_id in all_chats():
         try:
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
@@ -115,7 +124,9 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("leaderboard", leaderboard_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    app.job_queue.run_daily(daily_chai_ping, time=time(16, 0, tzinfo=IST))
+    jq = app.job_queue
+    jq.run_daily(daily_chai_ping, time=time(16, 0, tzinfo=IST))          # 4pm IST chai time
+    jq.run_daily(weekly_roast, time=time(21, 0, tzinfo=IST), days=(6,))  # Sunday roast
     log.info("☕ Chai-O'Clock is live. 4pm IST, no mercy.")
     app.run_polling()
 
