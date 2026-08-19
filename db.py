@@ -20,6 +20,15 @@ CREATE TABLE IF NOT EXISTS chai_events (
     ts TEXT DEFAULT (datetime('now')),
     UNIQUE(chat_id, user_id, day)
 );
+CREATE TABLE IF NOT EXISTS champions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL,
+    month TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    user_name TEXT NOT NULL,
+    count INTEGER NOT NULL,
+    UNIQUE(chat_id, month)
+);
 """
 
 
@@ -80,3 +89,21 @@ def monthly_leaderboard(chat_id: int, month: str) -> list:
             " WHERE chat_id=? AND month=? GROUP BY user_id, user_name ORDER BY n DESC",
             (chat_id, month),
         ).fetchall()
+
+
+def record_champion(chat_id: int, month: str, user_id: int, user_name: str, count: int):
+    with db() as c:
+        c.execute(
+            "INSERT OR REPLACE INTO champions(chat_id, month, user_id, user_name, count)"
+            " VALUES (?,?,?,?,?)",
+            (chat_id, month, user_id, user_name, count),
+        )
+
+
+def last_champion(chat_id: int):
+    with db() as c:
+        return c.execute(
+            "SELECT month, user_name, count FROM champions"
+            " WHERE chat_id=? ORDER BY month DESC LIMIT 1",
+            (chat_id,),
+        ).fetchone()

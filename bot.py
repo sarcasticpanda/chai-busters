@@ -3,7 +3,7 @@
 import logging
 import os
 import random
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from telegram import Update
@@ -20,7 +20,9 @@ from db import (
     all_chats,
     init_db,
     log_chai,
+    last_champion,
     monthly_leaderboard,
+    record_champion,
     upsert_chat,
 )
 
@@ -32,6 +34,7 @@ from messages import (
     CHAI_PINGS,
     CHAI_PRAISE,
     LEADERBOARD_EMPTY,
+    CHAMPION_ANNOUNCEMENTS,
     WEEKLY_ROASTS,
 )
 
@@ -92,6 +95,21 @@ async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
+async def champion_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await track_chat(update)
+    champ = last_champion(update.effective_chat.id)
+    if not champ:
+        await update.message.reply_text(
+            "No champion crowned yet. The first crowning happens at the end of this month. 👑"
+        )
+        return
+    month, name, count = champ
+    await update.message.reply_text(
+        f"👑 *Reigning Chai Champion — {month}*\n*{name}* with {count} chais. All hail. ☕",
+        parse_mode="Markdown",
+    )
+
+
 async def weekly_roast(context: ContextTypes.DEFAULT_TYPE):
     month = now_ist().strftime("%Y-%m")
     for chat_id in all_chats():
@@ -105,6 +123,27 @@ async def weekly_roast(context: ContextTypes.DEFAULT_TYPE):
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
         except Exception as e:
             log.warning("weekly roast failed for %s: %s", chat_id, e)
+
+
+async def maybe_crown_champion(context: ContextTypes.DEFAULT_TYPE):
+    """Run near midnight; if tomorrow is a new month, crown this month's champion."""
+    today = now_ist().date()
+    if (today + timedelta(days=1)).month == today.month:
+        return
+    month = today.strftime("%Y-%m")
+    for chat_id in all_chats():
+        board = monthly_leaderboard(chat_id, month)
+        if not board:
+            continue
+        name, count, user_id = board[0]
+        record_champion(chat_id, month, user_id, name, count)
+        msg = random.choice(CHAMPION_ANNOUNCEMENTS).format(
+            month=month, name=name, count=count
+        )
+        try:
+            await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
+        except Exception as e:
+            log.warning("champion crowning failed for %s: %s", chat_id, e)
 
 
 async def daily_chai_ping(context: ContextTypes.DEFAULT_TYPE):
@@ -123,10 +162,12 @@ def main():
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("leaderboard", leaderboard_cmd))
+    app.add_handler(CommandHandler("champion", champion_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     jq = app.job_queue
     jq.run_daily(daily_chai_ping, time=time(16, 0, tzinfo=IST))          # 4pm IST chai time
     jq.run_daily(weekly_roast, time=time(21, 0, tzinfo=IST), days=(6,))  # Sunday roast
+    jq.run_daily(maybe_crown_champion, time=time(23, 55, tzinfo=IST))     # month-end crowning
     log.info("☕ Chai-O'Clock is live. 4pm IST, no mercy.")
     app.run_polling()
 
