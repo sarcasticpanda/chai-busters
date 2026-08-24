@@ -29,6 +29,22 @@ from db import (
 IST = ZoneInfo("Asia/Kolkata")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 
+
+def _md_escape(text: str) -> str:
+    """Escape user-controlled text for Telegram's legacy Markdown parse mode.
+
+    First names and chat titles are fully user-controlled; without escaping,
+    a name like "*hacker*" would inject formatting into every bot message.
+    """
+    return (
+        (text or "")
+        .replace("\\", "\\\\")
+        .replace("*", "\\*")
+        .replace("_", "\\_")
+        .replace("`", "\\`")
+        .replace("[", "\\[")
+    )
+
 from messages import (
     ALREADY_LOGGED,
     CHAI_PINGS,
@@ -70,7 +86,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "+chai" not in update.message.text.lower():
         return
     user = update.effective_user
-    name = (user.first_name or "mystery human").strip()
+    name = _md_escape((user.first_name or "mystery human").strip())
     day = now_ist().strftime("%Y-%m-%d")
     chat_id = update.effective_chat.id
     if already_logged_today(chat_id, user.id, day):
