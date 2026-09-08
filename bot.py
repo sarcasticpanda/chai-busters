@@ -35,6 +35,9 @@ def _md_escape(text: str) -> str:
 
     First names and chat titles are fully user-controlled; without escaping,
     a name like "*hacker*" would inject formatting into every bot message.
+
+    Names are stored RAW in the database and escaped only here, at render
+    time — never escape before storing, or you'll double-escape.
     """
     return (
         (text or "")
@@ -86,14 +89,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "+chai" not in update.message.text.lower():
         return
     user = update.effective_user
-    name = _md_escape((user.first_name or "mystery human").strip())
+    # Store the RAW name. Escaping happens at render time only (_md_escape),
+    # otherwise names get double-escaped in the leaderboard.
+    raw_name = (user.first_name or "mystery human").strip()
     day = now_ist().strftime("%Y-%m-%d")
     chat_id = update.effective_chat.id
     if already_logged_today(chat_id, user.id, day):
-        await update.message.reply_text(random.choice(ALREADY_LOGGED).format(name=name))
+        await update.message.reply_text(
+            random.choice(ALREADY_LOGGED).format(name=_md_escape(raw_name))
+        )
     else:
-        log_chai(chat_id, user.id, name, day)
-        await update.message.reply_text(random.choice(CHAI_PRAISE).format(name=name))
+        log_chai(chat_id, user.id, raw_name, day)
+        await update.message.reply_text(
+            random.choice(CHAI_PRAISE).format(name=_md_escape(raw_name))
+        )
 
 
 async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -154,7 +163,7 @@ async def maybe_crown_champion(context: ContextTypes.DEFAULT_TYPE):
         name, count, user_id = board[0]
         record_champion(chat_id, month, user_id, name, count)
         msg = random.choice(CHAMPION_ANNOUNCEMENTS).format(
-            month=month, name=name, count=count
+            month=month, name=_md_escape(name), count=count
         )
         try:
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
