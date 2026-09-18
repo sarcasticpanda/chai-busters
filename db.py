@@ -2,7 +2,7 @@ import os
 import sqlite3
 from contextlib import contextmanager
 
-DB_PATH = os.environ.get("DATABASE_PATH", "chai.db")
+DB_PATH = os.environ.get("DATABASE_PATH", "chai_busters.db")
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS chats (

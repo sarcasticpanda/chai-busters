@@ -1,4 +1,4 @@
-"""Chai-O'Clock bot: screams CHAI TIME at 4pm IST, tracks who brews."""
+"""Chai Busters bot: screams CHAI TIME at 4pm IST, tracks who brews."""
 
 import logging
 import os
@@ -28,6 +28,7 @@ from db import (
 
 IST = ZoneInfo("Asia/Kolkata")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+BOT_LINK = "https://t.me/Kadak_chai_ahhh_bot"
 
 
 def _md_escape(text: str) -> str:
@@ -58,7 +59,7 @@ from messages import (
 )
 
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger("chai-oclock")
+log = logging.getLogger("chai-busters")
 
 
 def now_ist():
@@ -74,9 +75,10 @@ async def track_chat(update: Update):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await track_chat(update)
     await update.message.reply_text(
-        "☕ *Chai-O'Clock Bot* reporting for duty!\n\n"
+        "☕ *Chai Busters* reporting for duty!\n\n"
         "Every day at 4pm IST I'll scream CHAI TIME in this chat.\n"
         "When you make chai, send `+chai` and I'll track it.\n\n"
+        "Find me here: https://t.me/Kadak_chai_ahhh_bot\n"
         "May the kettle be ever in your favor. 🫖",
         parse_mode="Markdown",
     )
@@ -113,7 +115,7 @@ async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(random.choice(LEADERBOARD_EMPTY))
         return
     medals = ["🥇", "🥈", "🥉"]
-    lines = [f"☕ *Chai Leaderboard — {month}*"]
+    lines = [f"☕ *Chai Busters Leaderboard — {month}*"]
     for i, (name, count, _uid) in enumerate(board[:10]):
         medal = medals[i] if i < 3 else f"{i + 1}."
         lines.append(f"{medal} {name} — {count} chai{'s' if count != 1 else ''}")
@@ -193,7 +195,7 @@ def main():
     jq.run_daily(daily_chai_ping, time=time(16, 0, tzinfo=IST))          # 4pm IST chai time
     jq.run_daily(weekly_roast, time=time(21, 0, tzinfo=IST), days=(6,))  # Sunday roast
     jq.run_daily(maybe_crown_champion, time=time(23, 55, tzinfo=IST))     # month-end crowning
-    log.info("☕ Chai-O'Clock is live. 4pm IST, no mercy.")
+    log.info("☕ Chai Busters are live. 4pm IST, no mercy.")
     app.run_polling()
 
 

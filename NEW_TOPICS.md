@@ -1,12 +1,12 @@
 # 5 New Silly Automation Topics
 
-Fresh ideas in the same spirit as Chai-O'Clock. Each one is a small Telegram bot:
+Fresh ideas in the same spirit as Chai Busters. Each one is a small Telegram bot:
 one file of personality, one tiny database, one daily ritual.
 
 ---
 
 ## 1. Samosa O'Clock 🥟
-The 5pm sequel to Chai-O'Clock. Every day at 5pm IST the bot demands to know
+The 5pm sequel to Chai Busters. Every day at 5pm IST the bot demands to know
 who is frying samosas. Log with `+samosa`, climb the monthly leaderboard, and
 get crowned **Samosa Sultan** at month end.
 
@@ -54,12 +54,12 @@ calls you out. Complete sessions earn "Deep Work" points.
 
 ## How to build one
 
-1. Copy `bot.py`, `db.py`, `messages.py` from Chai-O'Clock.
+1. Copy `bot.py`, `db.py`, `messages.py` from Chai Busters.
 2. Rewrite `messages.py` — that's where 90% of the personality lives.
 3. Change the schedule times and the log trigger in `bot.py`.
 4. Keep the same security rules: escape user names for Markdown, use
    parameterized SQL, keep the token in `TELEGRAM_BOT_TOKEN`.
 
 All five follow the exact same shape as the original, so the vulnerability
-fixes in Chai-O'Clock (Markdown escaping, parameterized queries, pinned
+fixes in Chai Busters (Markdown escaping, parameterized queries, pinned
 dependencies) apply to every new topic automatically.
