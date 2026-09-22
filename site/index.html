@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chai Busters ☕ — the Telegram bot that enforces 4pm chai</title>
+<style>
+  :root{
+    --bg:#140b06; --card:#211206; --border:#3d2412;
+    --cream:#f7e9d2; --muted:#c9a37e; --amber:#f59e0b; --orange:#ea7b2d; --green:#4ade80;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--cream);
+    background:
+      radial-gradient(1100px 550px at 50% -8%, #40210d 0%, rgba(64,33,13,0) 60%),
+      radial-gradient(800px 500px at 90% 30%, rgba(234,123,45,.08) 0%, rgba(234,123,45,0) 60%),
+      var(--bg);
+    min-height:100vh;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 32px}
+  nav{display:flex;align-items:center;justify-content:space-between;padding:26px 0}
+  .brand{font-size:22px;font-weight:800;letter-spacing:.5px}
+  .brand span{color:var(--amber)}
+  .navlinks a{color:var(--muted);text-decoration:none;margin-left:28px;font-size:15px}
+  .navlinks a:hover{color:var(--cream)}
+  .btn{
+    display:inline-block;background:linear-gradient(135deg,var(--amber),var(--orange));
+    color:#1a0e04;font-weight:800;text-decoration:none;border:none;cursor:pointer;
+    padding:15px 34px;border-radius:999px;font-size:17px;
+    box-shadow:0 8px 30px rgba(245,158,11,.35);transition:transform .15s ease;
+  }
+  .btn:hover{transform:translateY(-2px)}
+  .btn.ghost{background:transparent;color:var(--cream);border:1.5px solid var(--border);box-shadow:none}
+  .hero{text-align:center;padding:70px 0 30px}
+  .pill{
+    display:inline-block;font-size:13px;font-weight:700;letter-spacing:2.5px;color:var(--amber);
+    border:1px solid var(--border);border-radius:999px;padding:9px 22px;margin-bottom:30px;
+    background:rgba(245,158,11,.07);
+  }
+  .bigcup{font-size:130px;line-height:1;filter:drop-shadow(0 0 60px rgba(245,158,11,.45));animation:bob 3.2s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-14px) rotate(4deg)}}
+  h1{font-size:76px;font-weight:900;letter-spacing:2px;margin:26px 0 6px;
+     background:linear-gradient(180deg,#ffe9c4,var(--amber) 70%,var(--orange));
+     -webkit-background-clip:text;background-clip:text;color:transparent}
+  .tag{font-size:21px;color:var(--muted);max-width:640px;margin:14px auto 36px;line-height:1.6}
+  .tag b{color:var(--cream)}
+  .ctas{display:flex;gap:16px;justify-content:center;margin-bottom:56px}
+  .stats{display:flex;gap:18px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px 34px;min-width:180px}
+  .stat .n{font-size:30px;font-weight:900;color:var(--amber)}
+  .stat .l{font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:.6px;text-transform:uppercase}
+  .ticker{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+          background:rgba(245,158,11,.05);margin:44px 0 0;white-space:nowrap}
+  .ticker div{display:inline-block;padding:15px 0;animation:tick 22s linear infinite;
+              font-weight:800;letter-spacing:3px;color:var(--amber);font-size:14px}
+  @keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  section{padding:74px 0}
+  h2{font-size:38px;font-weight:900;margin-bottom:12px}
+  h2 .e{color:var(--amber)}
+  .sub{color:var(--muted);font-size:17px;margin-bottom:40px;max-width:620px;line-height:1.6}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px 26px;transition:transform .15s ease}
+  .card:hover{transform:translateY(-4px);border-color:var(--amber)}
+  .card .ic{font-size:38px;margin-bottom:16px}
+  .card h3{font-size:19px;margin-bottom:10px}
+  .card p{color:var(--muted);font-size:15px;line-height:1.65}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);
+        border-radius:20px;overflow:hidden;font-size:16px}
+  th,td{text-align:left;padding:18px 24px;border-bottom:1px solid var(--border)}
+  th{color:var(--amber);text-transform:uppercase;font-size:13px;letter-spacing:1.5px}
+  tr:last-child td{border-bottom:none}
+  td code{background:#140b06;border:1px solid var(--border);border-radius:8px;padding:4px 12px;
+          color:var(--amber);font-size:15px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .phone{background:#0d0704;border:1px solid var(--border);border-radius:26px;padding:26px 22px}
+  .phone .hd{font-size:14px;font-weight:800;letter-spacing:1px;color:var(--amber);margin-bottom:18px;text-transform:uppercase}
+  .bub{max-width:88%;border-radius:16px;padding:12px 16px;font-size:15px;line-height:1.5;margin-bottom:12px}
+  .bub.them{background:#2b1a0c;border:1px solid var(--border);border-bottom-left-radius:4px}
+  .bub.me{background:linear-gradient(135deg,#8a4b12,#5c2f0a);margin-left:auto;border-bottom-right-radius:4px}
+  .bub.bot{background:rgba(245,158,11,.12);border:1px solid var(--amber);border-bottom-left-radius:4px}
+  .lrow{display:flex;align-items:center;gap:14px;padding:13px 6px;border-bottom:1px dashed var(--border);font-size:16px}
+  .lrow:last-child{border-bottom:none}
+  .lrow .who{flex:1;font-weight:700}
+  .lrow .c{color:var(--muted);font-size:14px}
+  .lrow.top .who{color:var(--amber)}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;counter-reset:step}
+  .step{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:30px 26px;position:relative}
+  .step::before{counter-increment:step;content:counter(step);position:absolute;top:-20px;left:24px;
+    width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--amber),var(--orange));
+    color:#1a0e04;font-weight:900;display:flex;align-items:center;justify-content:center;font-size:19px}
+  .step h3{margin:10px 0 10px;font-size:19px}
+  .step p{color:var(--muted);font-size:15px;line-height:1.65}
+  .step code{color:var(--amber);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:14px}
+  .cta{background:linear-gradient(135deg,rgba(245,158,11,.14),rgba(234,123,45,.06));
+       border:1px solid var(--amber);border-radius:28px;text-align:center;padding:64px 40px;margin:20px 0 0}
+  .cta h2{margin-bottom:14px}
+  .cta p{color:var(--muted);margin-bottom:32px;font-size:17px}
+  footer{border-top:1px solid var(--border);margin-top:70px;padding:34px 0 46px;
+         display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:14px}
+  footer a{color:var(--amber);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <div class="brand">☕ Chai <span>Busters</span></div>
+    <div class="navlinks">
+      <a href="#features">Features</a>
+      <a href="#commands">Commands</a>
+      <a href="#leaderboard">Leaderboard</a>
+      <a class="btn" style="padding:10px 24px;font-size:15px;margin-left:28px" href="https://t.me/Kadak_chai_ahhh_bot">Add to Telegram</a>
+    </div>
+  </nav>
+
+  <div class="hero">
+    <div class="pill">4PM IST &nbsp;•&nbsp; DAILY &nbsp;•&nbsp; NO MERCY</div>
+    <div class="bigcup">☕</div>
+    <h1>CHAI BUSTERS</h1>
+    <p class="tag">The deeply unserious Telegram bot that storms into your group chat every day at
+      <b>4pm IST</b> and demands answers: <b>who's making chai?</b><br>
+      Log it. Climb the board. Survive the roast. Become legend. 👑</p>
+    <div class="ctas">
+      <a class="btn" href="https://t.me/Kadak_chai_ahhh_bot">🚀 Add to Telegram</a>
+      <a class="btn ghost" href="#how">How it works</a>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">4:00 PM</div><div class="l">IST daily ping</div></div>
+      <div class="stat"><div class="n">+chai</div><div class="l">one tap logging</div></div>
+      <div class="stat"><div class="n">👑</div><div class="l">monthly champion</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="ticker"><div>
+  ☕ KADAK CHAI ONLY &nbsp;&nbsp;•&nbsp;&nbsp; 4PM IST SHARP &nbsp;&nbsp;•&nbsp;&nbsp; NO DECAF &nbsp;&nbsp;•&nbsp;&nbsp;
+  ONE LOG PER DAY &nbsp;&nbsp;•&nbsp;&nbsp; NO CHEATING &nbsp;&nbsp;•&nbsp;&nbsp; SUNDAY ROASTS &nbsp;&nbsp;•&nbsp;&nbsp;
+  ☕ KADAK CHAI ONLY &nbsp;&nbsp;•&nbsp;&nbsp; 4PM IST SHARP &nbsp;&nbsp;•&nbsp;&nbsp; NO DECAF &nbsp;&nbsp;•&nbsp;&nbsp;
+  ONE LOG PER DAY &nbsp;&nbsp;•&nbsp;&nbsp; NO CHEATING &nbsp;&nbsp;•&nbsp;&nbsp; SUNDAY ROASTS &nbsp;&nbsp;•&nbsp;&nbsp;
+</div></div>
+
+<div class="wrap">
+  <section id="features">
+    <h2>What the Busters <span class="e">do</span></h2>
+    <p class="sub">One bot. One sacred duty: making sure nobody in your group skips 4pm chai ever again.</p>
+    <div class="grid">
+      <div class="card"><div class="ic">📢</div><h3>Daily 4pm ping</h3><p>Every day at 4:00 PM IST sharp, the bot screams CHAI TIME into the group. No snooze button. No excuses.</p></div>
+      <div class="card"><div class="ic">➕</div><h3>+chai logging</h3><p>Brewed your chai? Reply <b>+chai</b>. One log per person per day — the bot counts, and the bot remembers.</p></div>
+      <div class="card"><div class="ic">🏆</div><h3>Monthly leaderboard</h3><p><b>/leaderboard</b> shows this month's standings with medals. Glory is quantified in chais.</p></div>
+      <div class="card"><div class="ic">🔥</div><h3>Sunday roast</h3><p>Every Sunday at 9pm IST, the bot publishes a brutally honest report on your group's brewing habits.</p></div>
+      <div class="card"><div class="ic">👑</div><h3>Champion crowning</h3><p>At 11:55pm on the last day of the month, the top brewer is crowned <b>Chai Champion</b>. Immortality, sort of.</p></div>
+      <div class="card"><div class="ic">🗄️</div><h3>Zero-config storage</h3><p>Plain SQLite. No database server, no setup, no drama. Your chai history lives in one little file.</p></div>
+    </div>
+  </section>
+
+  <section id="commands">
+    <h2>Speak <span class="e">bot</span></h2>
+    <p class="sub">Four things to say. That's the whole vocabulary.</p>
+    <table>
+      <tr><th>Command</th><th>What happens</th></tr>
+      <tr><td><code>/start</code></td><td>Bot introduces itself and starts tracking the chat</td></tr>
+      <tr><td><code>+chai</code></td><td>Log today's chai (once per person per day — no cheating)</td></tr>
+      <tr><td><code>/leaderboard</code></td><td>This month's standings, medals included 🥇🥈🥉</td></tr>
+      <tr><td><code>/champion</code></td><td>Who's the reigning Chai Champion 👑</td></tr>
+    </table>
+  </section>
+
+  <section id="leaderboard">
+    <h2>Peak <span class="e">chai</span> culture</h2>
+    <p class="sub">A totally real* preview of your group's future. (*names changed to protect the caffeine-innocent)</p>
+    <div class="duo">
+      <div class="phone">
+        <div class="hd">💬 group chat — 4:03 pm</div>
+        <div class="bub bot">☕ <b>CHAI BUSTERS ROLL CALL!</b><br>It's 4pm IST. Drop everything. Who's making chai?</div>
+        <div class="bub me">+chai</div>
+        <div class="bub bot">☕ <b>Aarav made chai!</b> The nation salutes you. 🫡</div>
+        <div class="bub them">+chai</div>
+        <div class="bub bot">Meera, we already counted your chai today. One per day, calm down. 😤</div>
+      </div>
+      <div class="phone">
+        <div class="hd">🏆 leaderboard — september</div>
+        <div class="lrow top"><span>🥇</span><span class="who">Aarav</span><span class="c">21 chais</span></div>
+        <div class="lrow top"><span>🥈</span><span class="who">Meera</span><span class="c">18 chais</span></div>
+        <div class="lrow top"><span>🥉</span><span class="who">Kabir</span><span class="c">15 chais</span></div>
+        <div class="lrow"><span>4.</span><span class="who">Zoya</span><span class="c">12 chais</span></div>
+        <div class="lrow"><span>5.</span><span class="who">Dev</span><span class="c">9 chais</span></div>
+        <div class="lrow"><span>6.</span><span class="who">Rohan</span><span class="c">2 chais 😬</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>Live in <span class="e">5 minutes</span></h2>
+    <p class="sub">From zero to 4pm chaos before your next chai break.</p>
+    <div class="steps">
+      <div class="step"><h3>Talk to BotFather</h3><p>Message <b>@BotFather</b> on Telegram, send <code>/newbot</code>, and grab your token. Disable privacy mode so it can see <code>+chai</code> in groups.</p></div>
+      <div class="step"><h3>Run the bot</h3><p><code>pip install -r requirements.txt</code>, set <code>TELEGRAM_BOT_TOKEN</code>, then <code>python bot.py</code>. Or one-click deploy on Railway.</p></div>
+      <div class="step"><h3>Get yelled at daily</h3><p>Add the bot to your group, send <code>/start</code>, and wait for 4pm IST. The Busters handle the rest. ☕</p></div>
+    </div>
+  </section>
+
+  <div class="cta">
+    <h2>Your group chat <span class="e">needs</span> this.</h2>
+    <p>Somewhere, a kettle is whistling. It's in your kitchen.</p>
+    <a class="btn" href="https://t.me/Kadak_chai_ahhh_bot">☕ Meet the Busters</a>
+  </div>
+
+  <footer>
+    <div>☕ Chai Busters — brewed with caffeine and questionable priorities. MIT licensed.</div>
+    <div><a href="https://t.me/Kadak_chai_ahhh_bot">t.me/Kadak_chai_ahhh_bot</a></div>
+  </footer>
+</div>
+</body>
+</html>
