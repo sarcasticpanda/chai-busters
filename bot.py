@@ -59,6 +59,9 @@ from messages import (
 )
 
 logging.basicConfig(level=logging.INFO)
+# Keep the bot token out of logs: httpx logs full request URLs (which embed
+# the token) at INFO level. Silence it to WARNING and above.
+logging.getLogger("httpx").setLevel(logging.WARNING)
 log = logging.getLogger("chai-busters")
 
 
