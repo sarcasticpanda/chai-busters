@@ -2,4 +2,11 @@
 __pycache__/
 *.pyc
 *.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 .venv/
+.wrangler/
+cloudflare/.dev.vars
+cloudflare/.telegram-token
+cloudflare/.webhook-secret

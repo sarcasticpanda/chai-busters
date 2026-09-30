@@ -1,0 +1,29 @@
+{
+  "name": "chai-busters",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-29",
+  "vars": {
+    "TELEGRAM_BOT_USERNAME": "Kadak_chai_ahhh_bot"
+  },
+  "assets": {
+    "directory": "../site",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/webhook", "/health"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "chai-busters",
+      "database_id": "5ad63f21-bd49-425d-bb1e-2c70edc70b86",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "30 10 * * *",
+      "30 15 * * SUN",
+      "25 18 * * *"
+    ]
+  }
+}

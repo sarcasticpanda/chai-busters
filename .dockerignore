@@ -1,0 +1,10 @@
+.git
+.env
+.venv
+__pycache__
+*.pyc
+*.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+site/screenshots

@@ -29,12 +29,12 @@ LEADERBOARD_EMPTY = [
 ]
 
 WEEKLY_ROASTS = [
-    "📊 *Weekly chai report:*\n{top} leads with {count} chais. The rest of you are a disgrace to the kitchen. 😤☕",
-    "📊 *Weekly chai report:*\n{top} carrying the entire group with {count} chais while everyone else 'forgets'. Shameful. Step up. ☕",
-    "📊 *Weekly chai report:*\nTop buster: {top} ({count} chais). Everyone else: the bot has noted your absence. 🕵️",
+    "📊 *Weekly chai report:*\n{top} leads with {count} cups. The rest of you are a disgrace to the kitchen. 😤☕",
+    "📊 *Weekly chai report:*\n{top} carried the group with {count} cups while everyone else 'forgets'. Shameful. Step up. ☕",
+    "📊 *Weekly chai report:*\nTop buster: {top} ({count} cups). Everyone else: the bot has noted your absence. 🕵️",
 ]
 
 CHAMPION_ANNOUNCEMENTS = [
-    "👑 *CHAI CHAMPION OF {month}*\n*{name}* brewed {count} chais and carried this group on their back.\nBow before the Kettle Master. ☕👑",
-    "🏆 *OFFICIAL RESULTS — {month}*\n{name} is the Chai Champion with {count} chais.\nA statue (of a kettle) will be erected in their honor. ☕",
+    "👑 *CHAI CHAMPION OF {month}*\n*{name}* made {count} cups and carried this group on their back.\nBow before the Kettle Master. ☕👑",
+    "🏆 *OFFICIAL RESULTS — {month}*\n{name} is the Chai Champion with {count} cups.\nA statue (of a kettle) will be erected in their honor. ☕",
 ]

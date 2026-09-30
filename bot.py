@@ -3,10 +3,12 @@
 import logging
 import os
 import random
+import re
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 from telegram import Update
+from telegram.error import TelegramError
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -18,17 +20,21 @@ from telegram.ext import (
 from db import (
     already_logged_today,
     all_chats,
+    daily_brewers,
     init_db,
     log_chai,
     last_champion,
     monthly_leaderboard,
+    monthly_group_stats,
     record_champion,
+    update_chai_cups,
     upsert_chat,
 )
 
 IST = ZoneInfo("Asia/Kolkata")
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-BOT_LINK = "https://t.me/Kadak_chai_ahhh_bot"
+BOT_USERNAME = os.environ.get("TELEGRAM_BOT_USERNAME", "Kadak_chai_ahhh_bot").lstrip("@")
+BOT_LINK = f"https://t.me/{BOT_USERNAME}"
 
 
 def _md_escape(text: str) -> str:
@@ -69,48 +75,125 @@ def now_ist():
     return datetime.now(IST)
 
 
+def is_group_chat(update: Update) -> bool:
+    chat = update.effective_chat
+    return bool(chat and chat.type in {"group", "supergroup"})
+
+
 async def track_chat(update: Update):
     chat = update.effective_chat
-    if chat:
+    # Record group chats only. A private /start should not enrol someone in
+    # daily broadcasts.
+    if is_group_chat(update):
         upsert_chat(chat.id, chat.title or chat.first_name or "DM")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group_chat(update):
+        await update.message.reply_text(
+            "☕ Add me to a Telegram group, then send /start there. "
+            "That is where I keep the chai score."
+        )
+        return
     await track_chat(update)
     await update.message.reply_text(
         "☕ *Chai Busters* reporting for duty!\n\n"
         "Every day at 4pm IST I'll scream CHAI TIME in this chat.\n"
-        "When you make chai, send `+chai` and I'll track it.\n\n"
-        "Find me here: https://t.me/Kadak_chai_ahhh_bot\n"
+        "When you make chai, send `+chai` or `+chai 4` and I'll track it.\n\n"
+        f"Find me here: {BOT_LINK}\n"
         "May the kettle be ever in your favor. 🫖",
         parse_mode="Markdown",
     )
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group_chat(update):
+        return
     await track_chat(update)
     if not update.message or not update.message.text:
         return
-    if "+chai" not in update.message.text.lower():
+    # Require the complete action, so normal conversation containing '+chai'
+    # cannot create a score entry. An optional number is today's total cups.
+    match = re.fullmatch(r"\s*\+chai(?:\s+([1-9]\d{0,2}))?\s*[!.?]*\s*", update.message.text)
+    if not match:
         return
     user = update.effective_user
     # Store the RAW name. Escaping happens at render time only (_md_escape),
     # otherwise names get double-escaped in the leaderboard.
-    raw_name = (user.first_name or "mystery human").strip()
+    raw_name = (user.first_name or "mystery human").strip() or "mystery human"
     day = now_ist().strftime("%Y-%m-%d")
     chat_id = update.effective_chat.id
-    if already_logged_today(chat_id, user.id, day):
+    cups = int(match.group(1) or 1)
+    # A chai round is for the people in this group. A fallback keeps the bot
+    # usable if Telegram's member-count API is temporarily unavailable.
+    try:
+        group_size = await context.bot.get_chat_member_count(chat_id)
+    except TelegramError:
+        group_size = 100
+    if cups > group_size:
         await update.message.reply_text(
-            random.choice(ALREADY_LOGGED).format(name=_md_escape(raw_name))
+            f"This group currently has {group_size} members, so chai servings must be between 1 and {group_size}."
+        )
+        return
+    if already_logged_today(chat_id, user.id, day):
+        if match.group(1):
+            previous_cups = update_chai_cups(chat_id, user.id, day, cups)
+            if previous_cups != cups:
+                await update.message.reply_text(
+                    f"☕ *{_md_escape(raw_name)}* updated today's chai total: "
+                    f"{previous_cups} → {cups} cups. One brew round recorded.",
+                    parse_mode="Markdown",
+                )
+                return
+        await update.message.reply_text(
+            random.choice(ALREADY_LOGGED).format(name=_md_escape(raw_name)),
+            parse_mode="Markdown",
         )
     else:
-        log_chai(chat_id, user.id, raw_name, day)
+        log_chai(chat_id, user.id, raw_name, day, cups)
         await update.message.reply_text(
-            random.choice(CHAI_PRAISE).format(name=_md_escape(raw_name))
+            f"☕ *{_md_escape(raw_name)}* logged 1 brew round and {cups} "
+            f"cup{'s' if cups != 1 else ''}.",
+            parse_mode="Markdown",
         )
+
+
+async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "☕ *Chai Busters commands*\n\n"
+        "`+chai` or `+chai 4` — log today's total cups\n"
+        "`/today` — see today's brewers and cups\n"
+        "`/groupstats` — see group chai hisaab\n"
+        "`/leaderboard` — see this month's scores\n"
+        "`/champion` — see the reigning champion\n\n"
+        "Use scoring commands in a group chat.",
+        parse_mode="Markdown",
+    )
+
+
+async def today_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group_chat(update):
+        await update.message.reply_text("☕ Use /today in a group chat.")
+        return
+    await track_chat(update)
+    day = now_ist().strftime("%Y-%m-%d")
+    brewers = daily_brewers(update.effective_chat.id, day)
+    if not brewers:
+        await update.message.reply_text("No chai logged today yet. The kettle is waiting. ☕")
+        return
+    names = "\n".join(
+        f"• {_md_escape(name)} — {cups} cup{'s' if cups != 1 else ''}"
+        for name, cups in brewers
+    )
+    await update.message.reply_text(
+        f"☕ *Today's chai crew*\n{names}", parse_mode="Markdown"
+    )
 
 
 async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group_chat(update):
+        await update.message.reply_text("☕ Use /leaderboard in a group chat.")
+        return
     await track_chat(update)
     month = now_ist().strftime("%Y-%m")
     board = monthly_leaderboard(update.effective_chat.id, month)
@@ -119,13 +202,42 @@ async def leaderboard_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     medals = ["🥇", "🥈", "🥉"]
     lines = [f"☕ *Chai Busters Leaderboard — {month}*"]
-    for i, (name, count, _uid) in enumerate(board[:10]):
+    for i, (name, brew_rounds, cups, _uid) in enumerate(board[:10]):
         medal = medals[i] if i < 3 else f"{i + 1}."
-        lines.append(f"{medal} {name} — {count} chai{'s' if count != 1 else ''}")
+        lines.append(
+            f"{medal} {_md_escape(name)} — {cups} cups · {brew_rounds} brew "
+            f"round{'s' if brew_rounds != 1 else ''}"
+        )
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
+async def groupstats_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group_chat(update):
+        await update.message.reply_text("☕ Use /groupstats in a group chat.")
+        return
+    await track_chat(update)
+    chat_id = update.effective_chat.id
+    month = now_ist().strftime("%Y-%m")
+    rounds, brewers, cups = monthly_group_stats(chat_id, month)
+    try:
+        members = await context.bot.get_chat_member_count(chat_id)
+        member_line = f"Group members: *{members}*\n"
+    except TelegramError:
+        member_line = "Group members: unavailable right now\n"
+    await update.message.reply_text(
+        f"📊 *Chai hisaab — {month}*\n"
+        f"{member_line}"
+        f"Active brewers: *{brewers}*\n"
+        f"Brew rounds: *{rounds}*\n"
+        f"Total cups: *{cups}*",
+        parse_mode="Markdown",
+    )
+
+
 async def champion_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_group_chat(update):
+        await update.message.reply_text("☕ Use /champion in a group chat.")
+        return
     await track_chat(update)
     champ = last_champion(update.effective_chat.id)
     if not champ:
@@ -133,9 +245,9 @@ async def champion_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "No champion crowned yet. The first crowning happens at the end of this month. 👑"
         )
         return
-    month, name, count = champ
+    month, name, cups = champ
     await update.message.reply_text(
-        f"👑 *Reigning Chai Champion — {month}*\n*{name}* with {count} chais. All hail. ☕",
+        f"👑 *Reigning Chai Champion — {month}*\n*{_md_escape(name)}* with {cups} cups. All hail. ☕",
         parse_mode="Markdown",
     )
 
@@ -147,8 +259,8 @@ async def weekly_roast(context: ContextTypes.DEFAULT_TYPE):
         if not board:
             msg = random.choice(LEADERBOARD_EMPTY)
         else:
-            name, count, _uid = board[0]
-            msg = random.choice(WEEKLY_ROASTS).format(top=name, count=count)
+            name, _rounds, cups, _uid = board[0]
+            msg = random.choice(WEEKLY_ROASTS).format(top=_md_escape(name), count=cups)
         try:
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
         except Exception as e:
@@ -165,10 +277,10 @@ async def maybe_crown_champion(context: ContextTypes.DEFAULT_TYPE):
         board = monthly_leaderboard(chat_id, month)
         if not board:
             continue
-        name, count, user_id = board[0]
-        record_champion(chat_id, month, user_id, name, count)
+        name, _rounds, cups, user_id = board[0]
+        record_champion(chat_id, month, user_id, name, cups)
         msg = random.choice(CHAMPION_ANNOUNCEMENTS).format(
-            month=month, name=_md_escape(name), count=count
+            month=month, name=_md_escape(name), count=cups
         )
         try:
             await context.bot.send_message(chat_id=chat_id, text=msg, parse_mode="Markdown")
@@ -191,6 +303,9 @@ def main():
     init_db()
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_cmd))
+    app.add_handler(CommandHandler("today", today_cmd))
+    app.add_handler(CommandHandler("groupstats", groupstats_cmd))
     app.add_handler(CommandHandler("leaderboard", leaderboard_cmd))
     app.add_handler(CommandHandler("champion", champion_cmd))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))

@@ -1,123 +1,105 @@
-# ☕ Chai Busters
+# Chai Busters
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
-[![Telegram](https://img.shields.io/badge/telegram-%40Kadak__chai__ahhh__bot-229ED9.svg)](https://t.me/Kadak_chai_ahhh_bot)
-[![SQLite](https://img.shields.io/badge/db-sqlite-003B57.svg)]()
-[![4pm IST](https://img.shields.io/badge/4pm_IST-or_death-orange.svg)]()
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
-
-> **The deeply unserious Telegram bot that holds your entire group chat accountable for 4pm chai.**
-
-Every day at **4:00 PM IST sharp**, Chai Busters storms into your group and demands answers: *who's making chai?*
-Brew it, reply `+chai`, and climb the monthly leaderboard. Slack off and you'll be named, shamed, and roasted
-every Sunday at 9pm. At month-end, one brewer is crowned **Chai Champion** 👑. There is no higher honor.
-
-🤖 **Try the live bot:** [t.me/Kadak_chai_ahhh_bot](https://t.me/Kadak_chai_ahhh_bot)
-
----
-
-## 📸 Screenshots
-
-The landing page (`site/index.html`) — dark, kadak, and proud of it:
-
-![Chai Busters hero](site/screenshots/hero.png)
-
-![Chai Busters full page](site/screenshots/fullpage.png)
-
----
-
-## ✨ Features
-
-| | |
-|---|---|
-| 📢 **Daily 4pm ping** | Screams CHAI TIME into the group every day at 4:00 PM IST. No snooze button. |
-| ➕ **+chai logging** | Reply `+chai` when your chai is brewed. One log per person per day — no cheating. |
-| 🏆 **Leaderboard** | `/leaderboard` — this month's standings with 🥇🥈🥉 medals. Glory, quantified. |
-| 🔥 **Sunday roast** | Every Sunday 9pm IST: a brutally honest report on your group's brewing habits. |
-| 👑 **Champion crowning** | 11:55pm on the last day of the month — the top brewer becomes Chai Champion. |
-| 🗄️ **Zero-config storage** | Plain SQLite. No database server, no setup, no drama. |
-
-## 🎮 Commands
-
-| Command | What it does |
-|---|---|
-| `/start` | Bot introduces itself, starts tracking the chat |
-| `+chai` | Log today's chai (once per person per day) |
-| `/leaderboard` | This month's chai standings with medals |
-| `/champion` | The reigning Chai Champion 👑 |
-
-## 🚀 Setup (5 minutes)
-
-### 1. Create the bot
-1. Open Telegram and chat with **[@BotFather](https://t.me/BotFather)**
-2. Send `/newbot`, pick a display name (we went with **Chai Busters ☕**) and a username ending in `bot`
-3. Copy the **token** BotFather gives you — keep it secret, keep it safe
-4. Send `/setprivacy` → select your bot → **Disable**, so it can see `+chai` replies in groups (commands work either way)
-5. Add the bot to your group chat and send `/start`
-
-### 2. Run it
-```bash
-git clone <this-repo>
-cd chai-busters
-pip install -r requirements.txt
-export TELEGRAM_BOT_TOKEN="your-token-here"
-python bot.py
-```
-
-### 3. Deploy free on Railway
-1. Push this folder to a GitHub repo
-2. Railway → **New Project → Deploy from GitHub**
-3. Set the **start command** to `python bot.py`
-4. Add env var `TELEGRAM_BOT_TOKEN` = your token
-5. *(Optional but smart)* Add a **Volume** mounted at `/data` and set `DATABASE_PATH=/data/chai_busters.db` so the leaderboard survives redeploys
-
-That's it. At 4pm IST tomorrow, your group gets yelled at. ☕
-
-## 🧠 How it works
-
-```
-4:00 PM IST ──▶ daily_chai_ping() ──▶ every tracked chat gets CHAI TIME
-     │
-     ▼ "+chai" in any message
-handle_message() ──▶ SQLite: one row per (chat, user, day)
-     │
-     ├── /leaderboard ──▶ GROUP BY user, ORDER BY count  →  🥇🥈🥉
-     ├── Sunday 9pm ──▶ weekly_roast() — top brewer praised, rest roasted
-     └── month-end 11:55pm ──▶ maybe_crown_champion()  →  👑 recorded forever
-```
-
-- **Stack:** Python 3.12, `python-telegram-bot` (with job-queue), SQLite
-- **Scheduling:** `job_queue.run_daily` with `Asia/Kolkata` timezone — no cron needed
-- **Security:** user names are stored **raw** in the DB and escaped for Telegram Markdown **only at render time**, so `*hacker*`-style names can't inject formatting or double-escape
-
-## 🗂️ Project structure
-
-```
-chai-busters/
-├── bot.py            # the bot: handlers, jobs, scheduling
-├── db.py             # SQLite layer (chats, chai_events, champions)
-├── messages.py       # all personality: pings, praise, roasts
-├── site/
-│   ├── index.html    # dark chai-themed landing page
-│   └── screenshots/  # page screenshots (see above)
-├── Dockerfile        # container deploy
-├── Procfile          # Railway/Heroku worker
-├── requirements.txt  # pinned deps
-└── NEW_TOPICS.md     # five more silly bot ideas, free of charge
-```
-
-## 🤝 Contributing
-
-Found a better roast? A spicier ping? PRs welcome — the bar is low and the chai is kadak.
-All personality lives in `messages.py`; add your roasts liberally. Please keep it fun, never mean.
-
-## 📜 License
-
-MIT — do whatever you want, just make chai while you do it. See [LICENSE](LICENSE).
-
----
+**A Telegram chai poll and group ledger.** Start a chai poll, count the cups, and see who earned this month's kettle crown.
 
 <p align="center">
-  <b>☕ Chai Busters</b> — because decaf is a rumor and 4pm is sacred.<br>
-  <a href="https://t.me/Kadak_chai_ahhh_bot">t.me/Kadak_chai_ahhh_bot</a>
+  <img src="site/assets/tea-avatar.jpg" alt="A glass of hot chai against a forest-green background" width="176">
 </p>
+
+<p align="center">
+  <a href="https://chai-busters.kadakchai-panda.workers.dev">Open the live site</a> ·
+  <a href="https://t.me/Kadak_chai_ahhh_bot">Open the Telegram bot</a> ·
+  <a href="https://github.com/sarcasticpanda/chai-busters">GitHub repository</a>
+</p>
+
+## The live project
+
+| | |
+| --- | --- |
+| Website | [chai-busters.kadakchai-panda.workers.dev](https://chai-busters.kadakchai-panda.workers.dev) |
+| Telegram bot | [@Kadak_chai_ahhh_bot](https://t.me/Kadak_chai_ahhh_bot) |
+| Hosting | Cloudflare Workers, with the landing page and bot webhook on one Worker |
+| Database | Cloudflare D1 (`chai-busters`), shared by all groups but separated by group ID |
+| Source | [github.com/sarcasticpanda/chai-busters](https://github.com/sarcasticpanda/chai-busters) |
+
+## Screenshots
+
+The current live landing page and its sample leaderboard:
+
+![Chai Busters live landing page](site/screenshots/website-hero.png)
+
+![Interactive leaderboard preview, with the selected brewer highlighted](site/screenshots/leaderboard-panel.png)
+
+The avatar above is also the tea image used on the live Telegram bot profile.
+
+## How the bot works
+
+1. Add the bot to a Telegram group and send `/start`.
+2. When someone is making chai, they send `/chai`. Telegram opens a 10-minute yes/no poll.
+3. The brewer gets one cup automatically. Each other member who votes **Haan** adds one cup to the brewer's daily total. Changing a vote updates the count; it does not add a duplicate. The brewer's own poll vote cannot add a second cup.
+4. Use `/leaderboard` to see that group's monthly rankings. Cups rank first; brew rounds break ties.
+
+The poll is non-anonymous so Telegram can identify votes for the tally. The person voting is not recorded as the brewer; the cups belong to the person who started the poll. Each group's totals stay separate.
+
+## Commands
+
+Telegram suggests these when you type `/` in a chat with the bot.
+
+| Command | What it does |
+| --- | --- |
+| `/start` | Register the group and show the quick guide. |
+| `/chai` | Start the 10-minute group poll. The brewer is counted once; each other “Haan” vote adds a cup for them. |
+| `/today` or `/aaj` | See today's brewers and cup totals. |
+| `/leaderboard` or `/taaj` | Rank the group's brewers for the current month. |
+| `/groupstats` or `/hisab` | See group size, active brewers, brew rounds, and cups this month. |
+| `/mychai` or `/mera` | See your own daily and monthly brewing totals in that group. |
+| `/champion` or `/badshah` | See the latest monthly chai champion. |
+| `/mood` | Pick a chai mood with buttons. |
+| `/chutkula` | Get a chai joke. |
+| `/help` or `/madad` | Show the command guide. |
+| `+chai` / `+chai 4` | Log or set your brewed-cup total directly. |
+
+**Note:** `/chai` works as a slash command. For plain `+chai` messages, Telegram group privacy must be disabled for this bot in BotFather; otherwise Telegram only forwards commands and mentions to it. `/banao` was retired because its old inline-button flow was unreliable; it now points to `/chai`.
+
+## What is stored
+
+- D1 stores Telegram group IDs, user IDs and display names, each brewer's daily cup total, poll IDs and votes, and monthly champion results.
+- The bot does not use RAG or an AI model and does not store the group's full chat history.
+- The production bot runs on Cloudflare Workers. The optional Python bot (`bot.py`) is a separate local version using SQLite.
+
+## Hosting and deployment
+
+The current production deployment is already live. To publish a code or website update, open PowerShell in `cloudflare/` and run:
+
+```powershell
+npx wrangler deploy
+```
+
+The Worker uses D1 through the `DB` binding. For a fresh setup, configure `TELEGRAM_BOT_TOKEN` and `WEBHOOK_SECRET` as Cloudflare Worker secrets, apply migrations, deploy, then connect Telegram's webhook. See [CLOUDFLARE_DEPLOY.md](CLOUDFLARE_DEPLOY.md) for the full steps and recovery notes.
+
+Never commit `cloudflare/.telegram-token`, `cloudflare/.webhook-secret`, `.env`, or Cloudflare secret values. If a bot token is exposed, revoke it with BotFather and replace the `TELEGRAM_BOT_TOKEN` Worker secret.
+
+## Project map
+
+```text
+site/index.html                    Live landing page
+site/assets/chaiwala-pour.webp     Chaiwala hero illustration
+site/assets/tea-avatar.jpg         Bot profile avatar and README tea image
+cloudflare/src/worker.js           Production Telegram bot and scheduled jobs
+cloudflare/migrations/             D1 schema and poll-accounting tables
+cloudflare/test/poll-flow.test.mjs Poll/revote/legacy-button regression test
+cloudflare/wrangler.jsonc          Worker, D1, assets, and schedule config
+bot.py                              Optional local Python bot
+db.py                               SQLite storage for the Python version
+```
+
+## Checks
+
+From `cloudflare/`:
+
+```powershell
+node test/poll-flow.test.mjs
+npx wrangler deploy --dry-run
+```
+
+The poll regression test covers the brewer's initial cup, yes/no vote changes, duplicate updates, self-votes, closing the poll, and retired `/banao` buttons.

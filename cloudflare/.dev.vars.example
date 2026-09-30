@@ -1,0 +1,3 @@
+TELEGRAM_BOT_TOKEN=paste_a_fresh_token_here
+TELEGRAM_BOT_USERNAME=Kadak_chai_ahhh_bot
+WEBHOOK_SECRET=use_a_long_random_value_here
